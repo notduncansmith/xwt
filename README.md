@@ -1,5 +1,7 @@
 # xwt
 
+[![GoDoc](https://godoc.org/github.com/notduncansmith/xwt?status.svg)](https://godoc.org/github.com/notduncansmith/xwt) [![Build Status](https://travis-ci.com/notduncansmith/xwt.svg?branch=master)](https://travis-ci.com/notduncansmith/xwt) [![codecov](https://codecov.io/gh/notduncansmith/xwt/branch/master/graph/badge.svg)](https://codecov.io/gh/notduncansmith/xwt)
+
 xwt is a nearly-structureless web token. This repository contains a description of what little structure there is, and a Go library that implements xwt.
 
 ## Structure of an xwt
