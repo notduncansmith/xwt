@@ -2,8 +2,8 @@ package xwt
 
 import (
 	"bytes"
-	"fmt"
 	"testing"
+	"time"
 )
 
 func TestRoundtrip(t *testing.T) {
@@ -12,16 +12,14 @@ func TestRoundtrip(t *testing.T) {
 		t.Fatalf("Error generating keys: %v", err)
 	}
 
-	token := Token{
-		ID:      []byte("user:12345"),
-		Expires: 1583826163,
-		Version: 1,
-	}
+	token, err := NewTokenV1(1583826163, []byte("user:12345"), nil)
 
-	if err = token.Sign(kp); err != nil {
+	if err := token.Sign(kp); err != nil {
 		t.Fatalf("Error signing token: %v", err)
 	}
 
-	fmt.Println("Keys:", kp.PublicHex())
-	panic("ono")
+	sinceEpoch := time.Now().Sub(time.Unix(1583826163, 0))
+	if err = token.Verify(*kp.PublicKey, sinceEpoch+time.Second); err != nil {
+		t.Fatalf("Error verifying token: %v", err)
+	}
 }
