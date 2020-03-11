@@ -55,9 +55,7 @@ func NewTokenV1(expires int64, id []byte, kp *KeyPair) (*Token, error) {
 	t := Token{Version: 1, Expires: expires, ID: id}
 	t.serializeData()
 	if kp != nil {
-		if err := t.Sign(kp); err != nil {
-			return nil, err
-		}
+		t.Sign(kp)
 	}
 	return &t, nil
 }
@@ -70,9 +68,9 @@ func Parse(bz SerializedToken) (*Token, error) {
 	idBz := bz[(signatureLength + versionLength + expiresLength):]
 
 	if string(versionBz) != "v1" {
-		return nil, fmt.Errorf("Invalid token version: %v", string(bz))
+		return nil, fmt.Errorf("Invalid token version: %v (%v)", string(bz), string(versionBz))
 	}
-	expires, err := strconv.ParseInt(string(expiresBz), 10, 64)
+	expires, err := stri64(string(expiresBz))
 	if err != nil {
 		return nil, fmt.Errorf("Error parsing expiry: %v %v", string(bz), err)
 	}
@@ -88,9 +86,10 @@ func Parse(bz SerializedToken) (*Token, error) {
 
 // Serialize encodes a Token as bytes in the format (signature | version | expires | id)
 func (t *Token) Serialize() SerializedToken {
-	bz := make([]byte, signatureLength+versionLength+expiresLength+len(t.ID))
+	t.serializeData()
+	bz := make([]byte, signatureLength+len(t.Data))
 	copy(bz[:signatureLength], t.Signature)
-	bz = append(bz, t.serializeData()...)
+	copy(bz[signatureLength:], t.Data)
 	return bz
 }
 
@@ -101,7 +100,7 @@ func (t *Token) serializeData() []byte {
 	}
 	bz := make([]byte, versionLength+expiresLength+len(t.ID))
 	copy(bz[:versionLength], []byte(fmt.Sprintf("v%v", t.Version)))
-	expiresBz := []byte(strconv.FormatInt(t.Expires, 10))
+	expiresBz := []byte(i64str(t.Expires))
 	copy(bz[versionLength:(versionLength+expiresLength)], expiresBz)
 	copy(bz[(versionLength+expiresLength):], t.ID)
 	t.Data = bz
@@ -109,13 +108,10 @@ func (t *Token) serializeData() []byte {
 }
 
 // Sign signs the non-signature data and sets the signature
-func (t *Token) Sign(kp *KeyPair) error {
-	if len(t.Data) == 0 {
-		t.serializeData()
-	}
+func (t *Token) Sign(kp *KeyPair) {
+	t.serializeData()
 	signed := sign.Sign(nil, t.Data, kp.PrivateKey)
 	t.Signature = signed[:signatureLength]
-	return nil
 }
 
 // Verify returns an error if a token is not valid
@@ -143,4 +139,12 @@ func GenerateKeys(from io.Reader) (*KeyPair, error) {
 	}
 	public, private, err := sign.GenerateKey(from)
 	return &KeyPair{PublicKey: public, PrivateKey: private}, err
+}
+
+func i64str(i int64) string {
+	return strconv.FormatInt(i, 10)
+}
+
+func stri64(s string) (int64, error) {
+	return strconv.ParseInt(s, 10, 64)
 }
