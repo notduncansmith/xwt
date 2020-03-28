@@ -2,8 +2,11 @@ package xwt
 
 import (
 	"bytes"
+	"encoding/hex"
 	"testing"
 	"time"
+
+	"golang.org/x/crypto/nacl/sign"
 )
 
 const epoch = 1583826163
@@ -43,6 +46,32 @@ func TestAutoSign(t *testing.T) {
 	}
 	if len(token.Signature) != 64 {
 		t.Fatalf("Token was not signed %+v", token)
+	}
+}
+
+func TestJSCompatibility(t *testing.T) {
+	bz, _ := hex.DecodeString("104e4a172a8da3526e9c58aef2353a50b5c204a12ed4e3a926e9ba4123bca23a8796f7eeee7ef649b6c4f601b668bb045c1b71408f3530187c25d237b161c30b76313132333435363738393061736466")
+
+	public, _, err := sign.GenerateKey(bytes.NewReader([]byte("asdfasdfasdfasdfasdfasdfasdfasdf")))
+	if err != nil {
+		t.Fatalf("Could not generate key: %v", err)
+	}
+
+	token, err := Parse(bz)
+	if err != nil {
+		t.Fatalf("Could not parse: %v", err)
+	}
+
+	if token.Expires != 1234567890 {
+		t.Fatal("Could not parse: bad expires")
+	}
+
+	if string(token.ID) != "asdf" {
+		t.Fatal("Could not parse: bad id")
+	}
+
+	if err = token.Verify(*public, 99999*time.Hour); err != nil {
+		t.Fatal("Could not verify parsed token")
 	}
 }
 
